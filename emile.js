@@ -6,9 +6,10 @@
         props = ('backgroundColor borderBottomColor borderBottomWidth borderLeftColor borderLeftWidth borderRightColor borderRightWidth borderSpacing borderTopColor borderTopWidth bottom color fontSize fontWeight height left letterSpacing lineHeight marginBottom marginLeft marginRight marginTop maxHeight maxWidth minHeight minWidth opacity outlineColor outlineOffset outlineWidth paddingBottom paddingLeft paddingRight paddingTop right textIndent top width wordSpacing zIndex').split(' '),
         handlers = {
             opacity: function (el, v) {
+                var s = el.style,
+                    v = isNaN(v) ? 0 : v;
                 if (ie) {
-                    var s = el.style,
-                        f = el.currentStyle.filter;
+                    var f = el.currentStyle.filter;
                     if (v == 1) {
                         f = f.replace(/alpha\([^\)]*\)/gi, '') ? s.filter = f : s.removeAttribute('filter');
                         return;
@@ -46,16 +47,16 @@
         return 'rgb(' + r.join(',') + ')';
     }
 
-    function parse(prop) {
-        var p = parseFloat(prop),
-            q = prop.replace(/^[\-\d\.]+/, '');
+    function parse(val, prop) {
+        var p = parseFloat(val),
+            q = val.replace(/^[\-\d\.]+/, '');
         return isNaN(p) ? {
             v: q,
-            f: color,
+            f: (prop in handlers) ? handlers[prop] : color,
             u: ''
         } : {
             v: p,
-            f: interpolate,
+            f: (prop in handlers) ? handlers[prop] : interpolate,
             u: q
         };
     }
@@ -66,7 +67,7 @@
             v;
         parseEl.innerHTML = '<div style="' + style + '"></div>';
         css = parseEl.childNodes[0].style;
-        while (i--) if (v = css[props[i]]) rules[props[i]] = parse(v);
+        while (i--) if (v = css[props[i]]) rules[props[i]] = parse(v, props[i]);
         return rules;
     }
 
@@ -82,15 +83,18 @@
             interval, easing = opts.easing || function (pos) {
                 return (-Math.cos(pos * Math.PI) / 2) + 0.5;
             };
-        for (prop in target) current[prop] = parse(comp[prop]);
+        for (prop in target) current[prop] = parse(comp[prop], prop);
         opts.before && opts.before(el, opts);
         interval = setInterval(function () {
             var time = +new Date,
                 pos = time > finish ? 1 : (time - start) / dur;
-            for (prop in target)
-                (prop in handlers) ?
-                    handlers[prop](el, (current[prop].value + (target[prop].value - current[prop].value) * easing(pos))) :
+            for (prop in target) {
+                if (prop in handlers) {
+                    handlers[prop](el, (current[prop].v + (target[prop].v - current[prop].v) * easing(pos)));
+                } else {
                     el.style[prop] = target[prop].f(current[prop].v, target[prop].v, easing(pos)) + target[prop].u;
+                }
+            }
             if (time > finish) {
                 clearInterval(interval);
                 opts.after && opts.after(el, opts);
