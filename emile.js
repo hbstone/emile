@@ -3,11 +3,22 @@
 
 (function(emile, container){
   var parseEl = document.createElement('div'),
+    ie = !!window.attachEvent && !window.opera,
     props = ('backgroundColor borderBottomColor borderBottomWidth borderLeftColor borderLeftWidth '+
     'borderRightColor borderRightWidth borderSpacing borderTopColor borderTopWidth bottom color fontSize '+
     'fontWeight height left letterSpacing lineHeight marginBottom marginLeft marginRight marginTop maxHeight '+
     'maxWidth minHeight minWidth opacity outlineColor outlineOffset outlineWidth paddingBottom paddingLeft '+
-    'paddingRight paddingTop right textIndent top width wordSpacing zIndex').split(' ');
+    'paddingRight paddingTop right textIndent top width wordSpacing zIndex').split(' '),
+    handlers = {
+      opacity: function(el, v) {
+        if (ie) {
+          var s = el.style, f = el.currentStyle.filter;
+            if (v == 1) { f = f.replace(/alpha\([^\)]*\)/gi,'') ? s.filter = f : s.removeAttribute('filter'); return; }
+            if(!el.currentStyle.hasLayout) s.zoom = 1;
+            s.filter = f.replace(/alpha\([^\)]*\)/gi,'')+'alpha(opacity='+((v<0.001 ? 0 : v) * 100)+')';
+        } else s.opacity = v.toFixed(3);
+      }
+    };
 
   function interpolate(source,target,pos){ return (source+(target-source)*pos).toFixed(3); }
   function s(str, p, c){ return str.substr(p,c||1); }
@@ -37,14 +48,17 @@
   container[emile] = function(el, style, opts, after){
     el = typeof el == 'string' ? document.getElementById(el) : el;
     opts = opts || {};
-    var target = normalize(style), comp = el.currentStyle ? el.currentStyle : getComputedStyle(el, null),
+    var target = normalize(style), comp = el.currentStyle || getComputedStyle(el, null),
       prop, current = {}, start = +new Date, dur = opts.duration||200, finish = start+dur, interval,
       easing = opts.easing || function(pos){ return (-Math.cos(pos*Math.PI)/2) + 0.5; };
     for(prop in target) current[prop] = parse(comp[prop]);
     interval = setInterval(function(){
       var time = +new Date, pos = time>finish ? 1 : (time-start)/dur;
       for(prop in target)
-        el.style[prop] = target[prop].f(current[prop].v,target[prop].v,easing(pos)) + target[prop].u;
+        if (prop in handlers) 
+          handlers[prop](el,(current[prop].value+(target[prop].value-current[prop].value)*easing(pos)));
+        else
+          el.style[prop] = target[prop].f(current[prop].v,target[prop].v,easing(pos)) + target[prop].u;
       if(time>finish) { clearInterval(interval); opts.after && opts.after(); after && setTimeout(after,1); }
     },10);
   }
