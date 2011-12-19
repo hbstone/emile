@@ -79,18 +79,18 @@
             start = +new Date,
             dur = opts.duration || 200,
             finish = start + dur,
-            interval, easing = opts.easing ||
-        function (pos) {
-            return (-Math.cos(pos * Math.PI) / 2) + 0.5;
-        };
+            interval, easing = opts.easing || function (pos) {
+                return (-Math.cos(pos * Math.PI) / 2) + 0.5;
+            };
         for (prop in target) current[prop] = parse(comp[prop]);
         opts.before && opts.before(el, opts);
         interval = setInterval(function () {
             var time = +new Date,
                 pos = time > finish ? 1 : (time - start) / dur;
             for (prop in target)
-            if (prop in handlers) handlers[prop](el, (current[prop].value + (target[prop].value - current[prop].value) * easing(pos)));
-            else el.style[prop] = target[prop].f(current[prop].v, target[prop].v, easing(pos)) + target[prop].u;
+                (prop in handlers) ?
+                    handlers[prop](el, (current[prop].value + (target[prop].value - current[prop].value) * easing(pos))) :
+                    el.style[prop] = target[prop].f(current[prop].v, target[prop].v, easing(pos)) + target[prop].u;
             if (time > finish) {
                 clearInterval(interval);
                 opts.after && opts.after(el, opts);
