@@ -45,13 +45,14 @@
     return rules;
   }  
   
-  container[emile] = function(el, style, opts, after){
+  container[emile] = function(el, style, opts){
     el = typeof el == 'string' ? document.getElementById(el) : el;
     opts = opts || {};
     var target = normalize(style), comp = el.currentStyle || getComputedStyle(el, null),
       prop, current = {}, start = +new Date, dur = opts.duration||200, finish = start+dur, interval,
       easing = opts.easing || function(pos){ return (-Math.cos(pos*Math.PI)/2) + 0.5; };
     for(prop in target) current[prop] = parse(comp[prop]);
+    opts.before && opts.before(el, opts);
     interval = setInterval(function(){
       var time = +new Date, pos = time>finish ? 1 : (time-start)/dur;
       for(prop in target)
@@ -59,7 +60,8 @@
           handlers[prop](el,(current[prop].value+(target[prop].value-current[prop].value)*easing(pos)));
         else
           el.style[prop] = target[prop].f(current[prop].v,target[prop].v,easing(pos)) + target[prop].u;
-      if(time>finish) { clearInterval(interval); opts.after && opts.after(); after && setTimeout(after,1); }
+      if(time>finish) { clearInterval(interval); opts.after && opts.after(el, opts); }
+      else { opts.during && opts.during(el, opts); }
     },10);
   }
 })('emile', this);
