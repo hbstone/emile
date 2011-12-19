@@ -16,6 +16,7 @@
                     }
                     if (!el.currentStyle.hasLayout) s.zoom = 1;
                     s.filter = f.replace(/alpha\([^\)]*\)/gi, '') + 'alpha(opacity=' + ((v < 0.001 ? 0 : v) * 100) + ')';
+                    s.opacity = '';
                 } else s.opacity = v.toFixed(3);
             }
         };
